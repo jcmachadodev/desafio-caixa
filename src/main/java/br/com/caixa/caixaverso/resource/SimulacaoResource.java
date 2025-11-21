@@ -83,7 +83,7 @@ public class SimulacaoResource {
                                     name = "Exemplo",
                                     value = """
                     {
-                      "clienteId": 123,
+                      "clienteId": 1,
                       "valor": 10000.00,
                       "prazoMeses": 12,
                       "tipoProduto": "CDB"

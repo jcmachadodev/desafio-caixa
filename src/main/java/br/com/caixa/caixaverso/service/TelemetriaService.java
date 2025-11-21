@@ -5,11 +5,13 @@ import br.com.caixa.caixaverso.domain.entity.Telemetria;
 import br.com.caixa.caixaverso.repository.TelemetriaRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import org.eclipse.microprofile.context.ManagedExecutor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
@@ -31,33 +33,36 @@ public class TelemetriaService {
         LocalDate startDate;
         LocalDate endDate;
 
-        if ((inicio == null || inicio.isBlank()) && (fim == null || fim.isBlank())) {
 
-            YearMonth ym = YearMonth.now();
-            startDate = ym.atDay(1);
-            endDate = ym.atEndOfMonth();
-        } else {
-            if (inicio == null || inicio.isBlank()) {
-                LocalDate parsedFim = LocalDate.parse(fim);
-                YearMonth ymFim = YearMonth.from(parsedFim);
-                startDate = ymFim.atDay(1);
-                endDate = parsedFim;
-            } else if (fim == null || fim.isBlank()) {
-                LocalDate parsedInicio = LocalDate.parse(inicio);
-                YearMonth ymInicio = YearMonth.from(parsedInicio);
-                startDate = parsedInicio;
-                endDate = ymInicio.atEndOfMonth();
+        try {
+            if ((inicio == null || inicio.isBlank()) && (fim == null || fim.isBlank())) {
+
+                YearMonth ym = YearMonth.now();
+                startDate = ym.atDay(1);
+                endDate = ym.atEndOfMonth();
             } else {
-                startDate = LocalDate.parse(inicio);
-                endDate = LocalDate.parse(fim);
+                if (inicio == null || inicio.isBlank()) {
+                    LocalDate parsedFim = LocalDate.parse(fim);
+                    YearMonth ymFim = YearMonth.from(parsedFim);
+                    startDate = ymFim.atDay(1);
+                    endDate = parsedFim;
+                } else if (fim == null || fim.isBlank()) {
+                    LocalDate parsedInicio = LocalDate.parse(inicio);
+                    YearMonth ymInicio = YearMonth.from(parsedInicio);
+                    startDate = parsedInicio;
+                    endDate = ymInicio.atEndOfMonth();
+                } else {
+                    startDate = LocalDate.parse(inicio);
+                    endDate = LocalDate.parse(fim);
+                }
             }
+        } catch (DateTimeParseException ex) {
+            throw new BadRequestException("Formato de data inválido. Use YYYY-MM-DD. Detalhe: " + ex.getParsedString());
         }
 
 
         if (startDate.isAfter(endDate)) {
-            LocalDate tmp = startDate;
-            startDate = endDate;
-            endDate = tmp;
+            throw new BadRequestException("Parametro 'inicio' deve ser menor ou igual a 'fim'.");
         }
 
         return telemetriaRepository.findAggregatedByServiceBetween(startDate, endDate);
